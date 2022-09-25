@@ -33,6 +33,7 @@ from dpgen2.op import (
     RunLmp,
     PrepVasp,
     RunVasp,
+    RunDP,
     SelectConfs,
     CollectData,
 )
@@ -134,6 +135,15 @@ def make_concurrent_learning_op (
             "prep-run-vasp",
             PrepVasp,
             RunVasp,
+            prep_config = prep_fp_config,
+            run_config = run_fp_config,
+            upload_python_package = upload_python_package,
+        )
+    elif fp_style == 'dp':
+        prep_run_fp_op = PrepRunFp(
+            "prep-run-dp",
+            PrepDP,
+            RunDP,
             prep_config = prep_fp_config,
             run_config = run_fp_config,
             upload_python_package = upload_python_package,

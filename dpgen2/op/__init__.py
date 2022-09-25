@@ -4,5 +4,6 @@ from .prep_lmp import PrepLmp
 from .run_lmp import RunLmp
 from .prep_vasp import PrepVasp
 from .run_vasp import RunVasp
+from .run_dp import RunDP
 from .collect_data import CollectData
 from .select_confs import SelectConfs
