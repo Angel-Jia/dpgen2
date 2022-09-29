@@ -25,6 +25,8 @@ from dpgen2 import (
     __version__
 )
 
+from dpgen2.utils.global_config import GLOBAL_CONFIG
+from copy import deepcopy
 
 def main_parser() -> argparse.ArgumentParser:
     """DPGEN2 commandline options argument parser.
@@ -119,10 +121,12 @@ def main():
     if args.command == "submit":
         with open(args.CONFIG) as fp:
             config = json.load(fp)
+        GLOBAL_CONFIG = deepcopy(config)
         submit_concurrent_learning(config)
     elif args.command == "resubmit":
         with open(args.CONFIG) as fp:
             config = json.load(fp)
+        GLOBAL_CONFIG = deepcopy(config)
         wfid = args.ID
         resubmit_concurrent_learning(
             config, wfid, list_steps=args.list, reuse=args.reuse,
@@ -130,6 +134,7 @@ def main():
     elif args.command == "status":
         with open(args.CONFIG) as fp:
             config = json.load(fp)
+        GLOBAL_CONFIG = deepcopy(config)
         wfid = args.ID
         status(
             wfid, config,

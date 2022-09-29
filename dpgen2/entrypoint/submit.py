@@ -41,6 +41,7 @@ from dpgen2.superop import (
     PrepRunDPTrain,
     PrepRunLmp,
     PrepRunFp,
+    PrepRunDp,
     ConcurrentLearningBlock,
 )
 from dpgen2.flow import (
@@ -73,6 +74,7 @@ from dpgen2.utils import (
     generate_alloy_conf_file_content,
     dflow_config,
 )
+from dpgen2.utils.dflow_query import sort_slice_ops, print_keys_in_nice_format
 from dpgen2.utils.step_config import normalize as normalize_step_dict
 from typing import (
     Union, List,
@@ -140,11 +142,9 @@ def make_concurrent_learning_op (
             upload_python_package = upload_python_package,
         )
     elif fp_style == 'dp':
-        prep_run_fp_op = PrepRunFp(
+        prep_run_fp_op = PrepRunDp(
             "prep-run-dp",
-            PrepDP,
             RunDP,
-            prep_config = prep_fp_config,
             run_config = run_fp_config,
             upload_python_package = upload_python_package,
         )
@@ -400,6 +400,8 @@ def submit_concurrent_learning(
         wf_config,
         reuse_step = None,
 ):
+    print('-----------')
+    print(wf_config)
     context = wf_global_workflow(wf_config)
     
     dpgen_step = workflow_concurrent_learning(wf_config)
@@ -461,7 +463,7 @@ def resubmit_concurrent_learning(
 ):
     context = wf_global_workflow(wf_config)
 
-    old_wf = Workflow(id=wfid)
+    old_wf = Workflow(id=wfid, context=context)
 
     all_step_keys = successful_step_keys(old_wf)
     all_step_keys = sort_slice_ops(
@@ -481,7 +483,6 @@ def resubmit_concurrent_learning(
 
     wf = submit_concurrent_learning(
         wf_config, 
-        context=context,
         reuse_step=reuse_step,
     )
 

@@ -59,6 +59,7 @@ class ConcurrentLearningBlock(Steps):
             "init_models" : InputArtifact(optional=True),
             "init_data" : InputArtifact(),
             "iter_data" : InputArtifact(),
+            "model_path": InputArtifact(optional=True)
         }
         self._output_parameters={
             "exploration_report": OutputParameter(),
