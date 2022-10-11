@@ -125,6 +125,10 @@ class RunDPTrain(OP):
         train_dict = RunDPTrain.write_other_to_input_script(
             train_dict, config, do_init_model, major_version)        
 
+        # os.system('pwd')
+        # os.system('ls')
+        # os.system('cd {} && pip install .'.format(str(deepmd_kit_path)))
+        
         with set_directory(work_dir):
             # open log
             fplog = open('train.log', 'w')
@@ -136,10 +140,23 @@ class RunDPTrain(OP):
                 json.dump(train_dict, fp, indent=4)
 
             # train model
-            if do_init_model:
+            fplog.write('init_model: {}\n'.format(str(init_model)))
+            if 'teacher' in os.path.basename(str(init_model)):
+                command = ['echo', 'teacher model, skip training!']
+                os.system('touch lcurve.out')
+                os.system('touch train.log')
+            elif 'finetune' in os.path.basename(str(init_model)):
+                command = ['dp', 'train', train_script_name, '--finetune', str(init_model)]
+            elif 'skip' in os.path.basename(str(init_model)):
+                command = ['echo', 'skip training!']
+                os.system('touch lcurve.out')
+                os.system('touch train.log')
+            elif do_init_model:
                 command = ['dp', 'train', '--init-frz-model', str(init_model), train_script_name]
             else:
                 command = ['dp', 'train', train_script_name]
+            
+            fplog.write('train cmd: {}\n'.format(command))
             ret, out, err = run_command(command)
             if ret != 0:
                 clean_before_quit()
@@ -153,8 +170,18 @@ class RunDPTrain(OP):
             fplog.write('#=================== train std err ===================\n')
             fplog.write(err)
 
+            output_model_name = 'frozen_model.pb'
             # freeze model
-            ret, out, err = run_command(['dp', 'freeze', '-o', 'frozen_model.pb'])
+            if 'teacher' in os.path.basename(str(init_model)):
+                output_model_name = os.path.basename(str(init_model))
+                command = ['mv', str(init_model), output_model_name]
+                output_model_name = os.path.basename(str(init_model))
+            elif 'skip' in os.path.basename(str(init_model)):
+                command = ['mv', str(init_model), output_model_name]
+            else:
+                command = ['dp', 'freeze', '-o', output_model_name]
+            fplog.write('freeze cmd: {}\n'.format(command))
+            ret, out, err = run_command(command)
             if ret != 0:
                 clean_before_quit()
                 raise FatalError(
@@ -171,7 +198,7 @@ class RunDPTrain(OP):
         
         return OPIO({
             "script" : work_dir / train_script_name,
-            "model" : work_dir / "frozen_model.pb",
+            "model" : work_dir / output_model_name,
             "lcurve" : work_dir / "lcurve.out",
             "log" : work_dir / "train.log",
         })

@@ -47,14 +47,14 @@ class RunDP(OP):
             "type_map": List[str],
             "config" : dict,
             "confs" : Artifact(List[Path]),
-            "model" : Artifact(Path),
+            "model_path" : Artifact(Path),
         })
 
     @classmethod
     def get_output_sign(cls):
         return OPIOSign({
             "log": Artifact(List[Path]),
-            "labeled_data" : Artifact(list[Path]),
+            "labeled_data" : Artifact(List[Path]),
         })
 
     @OP.exec_sign_check
@@ -87,7 +87,7 @@ class RunDP(OP):
         """
         config = ip['config']
         confs = ip['confs']
-        model_path = ip['model']
+        model_path = ip['model_path']
         type_map = ip['type_map']
 
         max_batch = config['max_batch']
@@ -155,7 +155,7 @@ class RunDP(OP):
         virial_npy_path = coord_npy_path.parent / 'virial.npy'
         
         nframe = ss_model.get_nframes()
-        coord = ss_model['coords'].reshape([nframe, -1])
+        coord = ss_model['coords']
         cell = ss_model['cells'].reshape([nframe, -1])
         atype = ss_model['atom_types'].tolist()
         

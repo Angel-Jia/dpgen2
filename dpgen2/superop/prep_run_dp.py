@@ -32,8 +32,10 @@ import os
 from typing import Set, List
 from pathlib import Path
 from copy import deepcopy
+from dpgen2.utils.global_config import get_global_config
 
-class PrepRunDP(Steps):
+
+class PrepRunDp(Steps):
     def __init__(
             self,
             name : str,
@@ -45,11 +47,11 @@ class PrepRunDP(Steps):
             "block_id" : InputParameter(type=str, value=""),
             "fp_config" : InputParameter(),
             "type_map" : InputParameter(),
-            "inputs": InputParameter(),
+            "inputs": InputParameter(save_as_artifact=True),
         }
         self._input_artifacts = {
             "confs" : InputArtifact(),
-            "dp_model": InputArtifact(optional=True)
+            # "model_path": InputArtifact(optional=True)
         }
         # self._output_parameters = {
         #     "task_names": OutputParameter(),
@@ -71,10 +73,10 @@ class PrepRunDP(Steps):
         )
         
         self._keys = ['run-dp']
-        
+        self.step_keys = {}
         ii = 'run-dp'
         self.step_keys[ii] = '--'.join(
-            ["%s"%self.inputs.parameters["block_id"], ii + "-{{item}}"]
+            ["%s"%self.inputs.parameters["block_id"], ii]
         )
 
         self = _prep_run_dp(
@@ -117,27 +119,25 @@ def _prep_run_dp(
     run_config = deepcopy(run_config)
     run_template_config = run_config.pop('template_config')
     run_executor = init_executor(run_config.pop('executor'))
+    
+    teacher_model_config = get_global_config("fp_config")
 
     run_dp = Step(
         'run-dp',
         template=PythonOPTemplate(
             run_op,
-            output_artifact_archive={
-                "task_paths": None
-            },
             python_packages = upload_python_package,
             **run_template_config,
         ),
         parameters={
             "type_map" : prep_run_steps.inputs.parameters['type_map'],
-            "inputs": prep_run_steps.inputs.parameters['inputs'],
-            "config" : prep_run_steps.inputs.parameters["fp_config"]
+            "config" : teacher_model_config
         },
         artifacts={
             "confs" : prep_run_steps.inputs.artifacts['confs'],
-            "model": upload_artifact(run_config['model_path'])
+            "model_path": upload_artifact(teacher_model_config["model_path"]),
         },
-        key = step_keys['prep-dp'],
+        key = step_keys['run-dp'],
         executor = run_executor,
         **run_config,        
     )
