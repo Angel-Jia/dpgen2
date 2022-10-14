@@ -120,7 +120,7 @@ def _prep_run_dp(
     run_template_config = run_config.pop('template_config')
     run_executor = init_executor(run_config.pop('executor'))
     
-    teacher_model_config = get_global_config("fp_config")
+    config = get_global_config("fp")['config']
 
     run_dp = Step(
         'run-dp',
@@ -131,11 +131,11 @@ def _prep_run_dp(
         ),
         parameters={
             "type_map" : prep_run_steps.inputs.parameters['type_map'],
-            "config" : teacher_model_config
+            "config" : config
         },
         artifacts={
             "confs" : prep_run_steps.inputs.artifacts['confs'],
-            "model_path": upload_artifact(teacher_model_config["model_path"]),
+            "model_path": upload_artifact(config["model_path"]),
         },
         key = step_keys['run-dp'],
         executor = run_executor,

@@ -14,6 +14,7 @@ from typing import (
 from .submit import (
     make_concurrent_learning_op,
     make_naive_exploration_scheduler,
+    submit_concurrent_learning_debug,
     workflow_concurrent_learning,
     submit_concurrent_learning,
     resubmit_concurrent_learning,
@@ -67,11 +68,27 @@ def main_parser() -> argparse.ArgumentParser:
         "submit",
         help="Submit DPGEN2 workflow",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
+    )    
     parser_run.add_argument(
         "CONFIG", help="the config file in json format defining the workflow."
     )
     parser_run.add_argument(
+        "-o", "--old-compatible", action='store_true', help="compatible with old-style input script used in dpgen2 < 0.0.6."
+    )
+    
+    ##########################################
+    # submit_debug
+    parser_debug = subparsers.add_parser(
+        "submit_debug",
+        help="Submit DPGEN2 workflow",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    
+    parser_debug.add_argument(
+        "CONFIG", help="the config file in json format defining the workflow."
+    )
+    
+    parser_debug.add_argument(
         "-o", "--old-compatible", action='store_true', help="compatible with old-style input script used in dpgen2 < 0.0.6."
     )
 
@@ -208,6 +225,7 @@ def main():
     args = parse_args()
     dict_args = vars(args)
 
+    print('args.command:', args.command)
     if args.command == "submit":
         with open(args.CONFIG) as fp:
             config = json.load(fp)
@@ -262,6 +280,14 @@ def main():
             frequency=args.frequency,
             download=args.download,
             prefix=args.prefix,
+        )
+    elif args.command == "submit_debug":
+        with open(args.CONFIG) as fp:
+            config = json.load(fp)
+        store_global_config(config)
+        submit_concurrent_learning_debug(
+            config,
+            old_style=args.old_compatible,
         )
     elif args.command is None:
         pass

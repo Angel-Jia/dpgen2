@@ -326,7 +326,7 @@ def workflow_concurrent_learning(
     collect_data_config = normalize_step_dict(config.get('collect_data_config', default_config)) if old_style else config['step_configs']['collect_data_config']
     cl_step_config = normalize_step_dict(config.get('cl_step_config', default_config)) if old_style else config['step_configs']['cl_step_config']
     upload_python_package = config.get('upload_python_package', None)
-    init_models_paths = config.get('training_iter0_model_path')
+    init_models_paths = config.get('training_iter0_model_path', None) if old_style else config['train'].get('training_iter0_model_path', None)
 
     concurrent_learning_op = make_concurrent_learning_op(
         train_style,
@@ -348,7 +348,12 @@ def workflow_concurrent_learning(
     type_map = config['type_map'] if old_style else config['inputs']['type_map']
     numb_models = config['numb_models'] if old_style else config['train']['numb_models']
     template_script = config['default_training_param'] if old_style else config['train']['template_script']
-    train_config = {} if old_style else config['train']['config']
+    if old_style:
+        train_config = {'max_numb_iter': config['max_numb_iter']}  
+    else:
+        train_config = config['train']['config']
+        train_config.update({'max_numb_iter': config['explore']['max_numb_iter']})
+    
     lmp_config = config.get('lmp_config', {}) if old_style else config['explore']['config']
     fp_config = config.get('fp_config', {}) if old_style else config['fp']['config']
     kspacing, kgamma = get_kspacing_kgamma_from_incar(config['fp_incar'] if old_style else config['fp']['incar'])
@@ -426,6 +431,28 @@ def submit_concurrent_learning(
     dpgen_step = workflow_concurrent_learning(wf_config, old_style=old_style)
 
     wf = Workflow(name="dpgen", context=context)
+    wf.add(dpgen_step)
+
+    wf.submit(reuse_step=reuse_step)
+
+    return wf
+
+
+def submit_concurrent_learning_debug(
+        wf_config,
+        reuse_step = None,
+        old_style = False,
+):
+    # wf_config = normalize_submit_args(wf_config)
+    from dflow import config
+    config["mode"] = "debug"
+    print('---------------------')
+    
+    wf_config = normalize_submit_args(wf_config)
+
+    dpgen_step = workflow_concurrent_learning(wf_config, old_style=old_style)
+
+    wf = Workflow(name="dpgen")
     wf.add(dpgen_step)
 
     wf.submit(reuse_step=reuse_step)

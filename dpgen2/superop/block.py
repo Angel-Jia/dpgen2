@@ -60,7 +60,8 @@ class ConcurrentLearningBlock(Steps):
             "init_models" : InputArtifact(optional=True),
             "init_data" : InputArtifact(),
             "iter_data" : InputArtifact(),
-            "model_path": InputArtifact(optional=True)
+            "model_path": InputArtifact(optional=True),
+            "train_shared_values": InputArtifact(optional=True)
         }
         self._output_parameters={
             "exploration_report": OutputParameter(),
@@ -69,6 +70,7 @@ class ConcurrentLearningBlock(Steps):
             "models": OutputArtifact(),
             "iter_data" : OutputArtifact(),
             "trajs" : OutputArtifact(),
+            "train_shared_values":  OutputArtifact(),
         }
         
         super().__init__(
@@ -164,6 +166,7 @@ def _block_cl(
             "init_models" : block_steps.inputs.artifacts['init_models'],
             "init_data" : block_steps.inputs.artifacts['init_data'],
             "iter_data" : block_steps.inputs.artifacts['iter_data'],
+            "train_shared_values": block_steps.inputs.artifacts['train_shared_values'],
         },
         key = '--'.join(["%s"%block_steps.inputs.parameters["block_id"], "prep-run-train"]),
     )
@@ -257,5 +260,7 @@ def _block_cl(
         collect_data.outputs.artifacts["iter_data"]
     block_steps.outputs.artifacts["trajs"]._from = \
         prep_run_lmp.outputs.artifacts["trajs"]
+    block_steps.outputs.artifacts["train_shared_values"]._from = \
+        prep_run_dp_train.outputs.artifacts["train_shared_values"]
 
     return block_steps

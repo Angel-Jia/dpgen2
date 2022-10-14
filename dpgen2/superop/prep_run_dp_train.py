@@ -53,6 +53,7 @@ class PrepRunDPTrain(Steps):
             "init_models" : InputArtifact(optional=True),
             "init_data" : InputArtifact(),
             "iter_data" : InputArtifact(),
+            "train_shared_values" : InputArtifact(optional=True),
         }
         self._output_parameters = {}
         self._output_artifacts = {
@@ -60,6 +61,7 @@ class PrepRunDPTrain(Steps):
             "models": OutputArtifact(),
             "logs": OutputArtifact(),
             "lcurves": OutputArtifact(),
+            "train_shared_values": OutputArtifact()
         }
 
         super().__init__(        
@@ -160,8 +162,8 @@ def _prep_run_dp_train(
             slices = Slices(
                 "int('{{item}}')",
                 input_parameter = ["task_name"],
-                input_artifact = ["task_path", "init_model"],
-                output_artifact = ["model", "lcurve", "log", "script"],
+                input_artifact = ["task_path", "init_model", "train_shared_value"],
+                output_artifact = ["model", "lcurve", "log", "script", "train_shared_value"],
             ),
             python_packages = upload_python_package,
             **run_template_config,
@@ -169,12 +171,14 @@ def _prep_run_dp_train(
         parameters={
             "config" : train_steps.inputs.parameters["train_config"],
             "task_name" : prep_train.outputs.parameters["task_names"],
+            "block_id": train_steps.inputs.parameters["block_id"],
         },
         artifacts={
             'task_path' : prep_train.outputs.artifacts['task_paths'],
             "init_model" : train_steps.inputs.artifacts['init_models'],
             "init_data": train_steps.inputs.artifacts['init_data'],
             "iter_data": train_steps.inputs.artifacts['iter_data'],
+            "train_shared_value": train_steps.inputs.artifacts['train_shared_values'],
         },
         with_sequence=argo_sequence(argo_len(prep_train.outputs.parameters["task_names"]), format=train_index_pattern),
         # with_param=argo_range(train_steps.inputs.parameters["numb_models"]),
@@ -188,6 +192,7 @@ def _prep_run_dp_train(
     train_steps.outputs.artifacts["models"]._from = run_train.outputs.artifacts["model"]
     train_steps.outputs.artifacts["logs"]._from = run_train.outputs.artifacts["log"]
     train_steps.outputs.artifacts["lcurves"]._from = run_train.outputs.artifacts["lcurve"]
+    train_steps.outputs.artifacts["train_shared_values"]._from = run_train.outputs.artifacts["train_shared_value"]
 
     return train_steps
 

@@ -136,6 +136,7 @@ class ConcurrentLearningLoop(Steps):
             "init_models" : InputArtifact(optional=True),
             "init_data" : InputArtifact(),
             "iter_data" : InputArtifact(),
+            "train_shared_values": InputArtifact(optional=True),
         }
         self._output_parameters={
             "exploration_scheduler": OutputParameter(),
@@ -383,6 +384,7 @@ def _loop (
             "init_models" : block_step.outputs.artifacts['models'],
             "init_data" : steps.inputs.artifacts['init_data'],
             "iter_data" : block_step.outputs.artifacts['iter_data'],
+            "train_shared_values": block_step.outputs.artifacts["train_shared_values"]
         },
         when = "%s == false" % (scheduler_step.outputs.parameters['converged']),
     )

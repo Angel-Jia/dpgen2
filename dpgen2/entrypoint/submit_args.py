@@ -161,7 +161,7 @@ def submit_args(default_step_config = normalize_step_dict({})):
         Argument("inputs", dict, input_args(), optional=False, doc=doc_inputs),
         Argument("train", dict, [], [variant_train()], optional=False, doc=doc_train),
         Argument("explore", dict, [], [variant_explore()], optional=False, doc=doc_explore),
-        Argument("fp", dict, [], [variant_fp()], optional=False, doc=doc_fp),
+        # Argument("fp", dict, [], [variant_fp()], optional=False, doc=doc_fp),
     ]
 
 
