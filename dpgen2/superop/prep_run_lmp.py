@@ -22,6 +22,7 @@ from dflow.python import(
     Artifact,
     Slices,
 )
+from dflow.io import if_expression
 from dpgen2.constants import (
     lmp_index_pattern,
 )
@@ -129,6 +130,7 @@ def _prep_run_lmp(
     run_template_config = run_config.pop('template_config')
     prep_executor = init_executor(prep_config.pop('executor'))
     run_executor = init_executor(run_config.pop('executor'))
+    group_size = run_config.pop("group_size") if "group_size" in run_config else -1
 
     prep_lmp = Step(
         'prep-lmp',
@@ -151,29 +153,38 @@ def _prep_run_lmp(
     )
     prep_run_steps.add(prep_lmp)
 
+    n_total = argo_len(prep_lmp.outputs.parameters["task_names"])
+    process_templ = PythonOPTemplate(
+        run_op,
+        python_packages = upload_python_package,
+        **run_template_config,
+    )
+    process_templ.inputs.parameters["n_total"] = InputParameter()
+    process_templ.slices = Slices(
+        "list(range({{item}}*%s, min(({{item}}+1)*%s, %s)))" % (
+            group_size, group_size, process_templ.inputs.parameters["n_total"]),
+        input_parameter = ["task_name"],
+        input_artifact = ["task_path"],
+        output_artifact = ["log", "traj", "model_devi"],
+        pool_size=1
+    )
     run_lmp = Step(
         'run-lmp',
-        template=PythonOPTemplate(
-            run_op,
-            slices = Slices(
-                "int('{{item}}')",
-                input_parameter = ["task_name"],
-                input_artifact = ["task_path"],
-                output_artifact = ["log", "traj", "model_devi"],
-            ),
-            python_packages = upload_python_package,
-            **run_template_config,
-        ),
+        template=process_templ,
         parameters={
             "task_name" : prep_lmp.outputs.parameters["task_names"],
             "config" : prep_run_steps.inputs.parameters["lmp_config"],
+            "n_total": n_total
         },
         artifacts={
             'task_path' : prep_lmp.outputs.artifacts['task_paths'],
             "models" : prep_run_steps.inputs.artifacts['models'],
         },
-        with_sequence=argo_sequence(argo_len(prep_lmp.outputs.parameters["task_names"]), format=lmp_index_pattern),
-        # with_param=argo_range(argo_len(prep_lmp.outputs.parameters["task_names"])),
+        # with_sequence=argo_sequence(argo_len(prep_lmp.outputs.parameters["task_names"]), format=lmp_index_pattern),
+        with_param=argo_range(if_expression(
+            _if="%s %% %s > 0" % (n_total, group_size),
+            _then="%s / %s + 1" % (n_total, group_size),
+            _else="%s / %s" % (n_total, group_size))),
         key = step_keys['run-lmp'],
         executor = run_executor,
         **run_config,
