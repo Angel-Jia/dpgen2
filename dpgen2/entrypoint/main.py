@@ -14,7 +14,6 @@ from typing import (
 from .submit import (
     make_concurrent_learning_op,
     make_naive_exploration_scheduler,
-    submit_concurrent_learning_debug,
     workflow_concurrent_learning,
     submit_concurrent_learning,
     resubmit_concurrent_learning,
@@ -73,22 +72,6 @@ def main_parser() -> argparse.ArgumentParser:
         "CONFIG", help="the config file in json format defining the workflow."
     )
     parser_run.add_argument(
-        "-o", "--old-compatible", action='store_true', help="compatible with old-style input script used in dpgen2 < 0.0.6."
-    )
-    
-    ##########################################
-    # submit_debug
-    parser_debug = subparsers.add_parser(
-        "submit_debug",
-        help="Submit DPGEN2 workflow",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    
-    parser_debug.add_argument(
-        "CONFIG", help="the config file in json format defining the workflow."
-    )
-    
-    parser_debug.add_argument(
         "-o", "--old-compatible", action='store_true', help="compatible with old-style input script used in dpgen2 < 0.0.6."
     )
 
@@ -219,26 +202,43 @@ def parse_args(args: Optional[List[str]] = None):
         parser.print_help()
 
     return parsed_args
-    
+
+def debug_mode(config):
+    import dflow.config as dflow_config
+    dflow_config["mode"] = "debug"
+
+    config["dflow_config"] = {}
+    config["dflow_s3_config"] = {}
+    if "lebesgue_context_config" in config: config.pop("lebesgue_context_config")
+    steps_config = config["step_configs"]
+    for key in steps_config.keys():
+        if isinstance(steps_config[key], dict) and "executor" in steps_config[key]:
+            steps_config[key].pop("executor")
+    store_global_config(config)
+    return config
 
 def main():
     args = parse_args()
     dict_args = vars(args)
 
-    print('args.command:', args.command)
+    with open(args.CONFIG) as fp:
+        config = json.load(fp)
+        
+    if os.getenv('DFLOW_DEBUG'):
+        config = debug_mode(config)
+
     if args.command == "submit":
-        with open(args.CONFIG) as fp:
-            config = json.load(fp)
-        store_global_config(config)
+        # with open(args.CONFIG) as fp:
+        #     config = json.load(fp)
         submit_concurrent_learning(
             config,
             old_style=args.old_compatible,
         )
     elif args.command == "resubmit":
-        with open(args.CONFIG) as fp:
-            config = json.load(fp)
-        store_global_config(config)
+        # with open(args.CONFIG) as fp:
+        #     config = json.load(fp)
         wfid = args.ID
+        print(wfid)
         resubmit_concurrent_learning(
             config, 
             wfid, 
@@ -247,23 +247,22 @@ def main():
             old_style=args.old_compatible,
         )
     elif args.command == "status":
-        with open(args.CONFIG) as fp:
-            config = json.load(fp)
-        store_global_config(config)
+        # with open(args.CONFIG) as fp:
+        #     config = json.load(fp)
         wfid = args.ID
         status(
             wfid, config,
         )        
     elif args.command == "showkey":
-        with open(args.CONFIG) as fp:
-            config = json.load(fp)
+        # with open(args.CONFIG) as fp:
+        #     config = json.load(fp)
         wfid = args.ID
         showkey(
             wfid, config,
         )        
     elif args.command == "download":
-        with open(args.CONFIG) as fp:
-            config = json.load(fp)
+        # with open(args.CONFIG) as fp:
+        #     config = json.load(fp)
         wfid = args.ID
         download(
             wfid, config,
@@ -271,8 +270,8 @@ def main():
             prefix=args.prefix,
         )
     elif args.command == "watch":
-        with open(args.CONFIG) as fp:
-            config = json.load(fp)
+        # with open(args.CONFIG) as fp:
+        #     config = json.load(fp)
         wfid = args.ID
         watch(
             wfid, config, 
@@ -280,14 +279,6 @@ def main():
             frequency=args.frequency,
             download=args.download,
             prefix=args.prefix,
-        )
-    elif args.command == "submit_debug":
-        with open(args.CONFIG) as fp:
-            config = json.load(fp)
-        store_global_config(config)
-        submit_concurrent_learning_debug(
-            config,
-            old_style=args.old_compatible,
         )
     elif args.command is None:
         pass

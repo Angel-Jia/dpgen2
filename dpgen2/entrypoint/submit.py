@@ -438,28 +438,6 @@ def submit_concurrent_learning(
     return wf
 
 
-def submit_concurrent_learning_debug(
-        wf_config,
-        reuse_step = None,
-        old_style = False,
-):
-    # wf_config = normalize_submit_args(wf_config)
-    from dflow import config
-    config["mode"] = "debug"
-    print('---------------------')
-    
-    wf_config = normalize_submit_args(wf_config)
-
-    dpgen_step = workflow_concurrent_learning(wf_config, old_style=old_style)
-
-    wf = Workflow(name="dpgen")
-    wf.add(dpgen_step)
-
-    wf.submit(reuse_step=reuse_step)
-
-    return wf
-
-
 def print_list_steps(
         steps,
 ):
