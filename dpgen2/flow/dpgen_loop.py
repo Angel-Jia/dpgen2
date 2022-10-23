@@ -318,6 +318,7 @@ def _loop (
             "init_models": steps.inputs.artifacts["init_models"],
             "init_data": steps.inputs.artifacts["init_data"],
             "iter_data": steps.inputs.artifacts["iter_data"],
+            "train_shared_values": steps.inputs.artifacts["train_shared_values"]
         },
         key = step_keys['block'],
     )

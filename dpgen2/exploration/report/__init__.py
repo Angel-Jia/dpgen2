@@ -6,4 +6,5 @@ from .naive_report import (
 )
 from .trajs_report import (
     TrajsExplorationReport,
+    TrajsDistExplorationReport,
 )

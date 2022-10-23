@@ -10,4 +10,5 @@ from .conf_selector import (
 )
 from .conf_selector_frame import (
     ConfSelectorLammpsFrames,
+    ConfDistSelectorLammpsFrames,
 )

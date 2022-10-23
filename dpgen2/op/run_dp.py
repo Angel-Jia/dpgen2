@@ -101,6 +101,7 @@ class RunDP(OP):
         task_paths = []
         log_paths = []
         counter = 0
+        total = 0
         
         # loop over list of MultiSystems
         for mm in confs:
@@ -114,12 +115,15 @@ class RunDP(OP):
                 ss_model = ms_model[ii]
                 ss = ms[ii]
                 task_path, log_path = self.model_eval(ss_model, ss, dp, max_batch, counter)
+                total += ss_model.get_nframes()
                 
                 # task_names.append(task_name)
                 task_paths.append(task_path)
                 log_paths.append(log_path)
                 counter += 1
 
+        print('inference frames: {}'.format(total))
+        print("finished!")
         return OPIO({
             "log": log_paths,
             "labeled_data": task_paths
@@ -185,7 +189,5 @@ class RunDP(OP):
             np.save(f, np.concatenate(force, axis=0).reshape([nframe, -1]))
         with open(virial_npy_path, 'wb') as f:
             np.save(f, np.concatenate(virial, axis=0).reshape([nframe, -1]))
-        
-        log_path.write_text('done!')
         return task_path, log_path
 

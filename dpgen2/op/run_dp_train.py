@@ -116,7 +116,7 @@ class RunDPTrain(OP):
             major_version = "2"
         
         train_shared_value_path = ip["train_shared_value"]
-        train_shared_value = json.load(open(str(train_shared_value_path), 'w', encoding='utf8')) \
+        train_shared_value = json.load(open(str(train_shared_value_path), encoding='utf8')) \
                                 if os.path.exists(str(train_shared_value_path)) else {}
         
         # insufficient training data
@@ -124,19 +124,20 @@ class RunDPTrain(OP):
         iter_data_size = _get_data_size_of_all_mult_sys(iter_data)
         min_training_data_size = config["min_training_data_size"]
         assert min_training_data_size >= 0, "min_training_data_size have to greater than 0."
+        
+        print("min_training_data_size: {}".format(config["min_training_data_size"]))
+        print("last_training_data_size: {}".format(last_training_data_size))
+        print("iter_data_size: {}".format(iter_data_size))
+        
         # cannot skip training here when:
         # 1. iter_idx == 0
         # 2. (iter_idx == max_numb_iter - 1 and iter_data_size - last_training_data_size > 0)
         if (not (iter_idx == 0)) and \
-            (not (iter_idx == config['max_numb_iter'] - 1 and iter_data_size - last_training_data_size > 0)) and \
             (iter_data_size - last_training_data_size < min_training_data_size):
             with set_directory(work_dir):
                 os.system('touch lcurve.out')
                 os.system('touch train.log')
-                os.system('echo "skip training\n" >> log.txt')
-                os.system('echo "min_training_data_size: {}\n" >> log.txt'.format(config["min_training_data_size"]))
-                os.system('echo "last_training_data_size: {}\n" >> log.txt'.format(last_training_data_size))
-                os.system('echo "iter_data_size: {}\n" >> log.txt'.format(iter_data_size))
+                print('skip training\n')
 
                 output_model_name = os.path.basename(str(init_model))
                 if output_model_name != '':
@@ -144,16 +145,13 @@ class RunDPTrain(OP):
                     os.system('mv {} ./{}'.format(str(init_model), output_model_name))
                 with open(train_script_name, 'w') as fp:
                     json.dump({}, fp, indent=4)
-                
-                with open("train_shared_value.json", 'w') as fp:
-                    json.dump(train_shared_value, fp, indent=4)
 
             return OPIO({
                 "script" : work_dir / train_script_name,
                 "model" : work_dir / output_model_name,
                 "lcurve" : work_dir / "lcurve.out",
                 "log" : work_dir / "train.log",
-                "train_shared_value": work_dir / "train_shared_value.json"
+                "train_shared_value": train_shared_value_path
             })
         else:
             last_training_idx = train_shared_value.get("last_training_idx", 0)
@@ -178,7 +176,6 @@ class RunDPTrain(OP):
         train_dict = RunDPTrain.write_other_to_input_script(
             train_dict, config, do_init_model, major_version)        
 
-        
         with set_directory(work_dir):
             with open('train_shared_value.json', 'w') as fp:
                 json.dump(train_shared_value, fp, indent=4)

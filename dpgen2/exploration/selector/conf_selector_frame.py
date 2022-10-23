@@ -10,7 +10,7 @@ from . import (
     ConfSelector,
     ConfFilters,
 )
-from dpgen2.exploration.report import ExplorationReport, TrajsExplorationReport
+from dpgen2.exploration.report import ExplorationReport, TrajsExplorationReport, TrajsDistExplorationReport
 
 class ConfSelectorLammpsFrames(ConfSelector):
     """Select frames from trajectories as confs.
@@ -124,6 +124,110 @@ class ConfSelectorLammpsFrames(ConfSelector):
         id_accu = np.where(md < level_lo)[0]
         id_fail = np.where(md >=level_hi)[0]
         return id_cand, id_accu, id_fail
+
+    @staticmethod
+    def _load_traj(
+            fname : Path,
+            fmt : str,
+            type_map : List[str],
+    ) -> dpdata.System : 
+        return dpdata.System(str(fname), fmt = fmt, type_map = type_map)
+
+    @staticmethod
+    def _load_model_devi(
+            fname : Path,
+    ) -> Tuple[np.array, np.array] : 
+        dd = np.loadtxt(fname)
+        return dd[:,4], dd[:,1]
+
+
+class ConfDistSelectorLammpsFrames(ConfSelector):
+    """Select frames from trajectories as confs.
+
+    Parameters:
+    """
+    def __init__(
+            self,
+            trust_level,
+            max_numb_sel : int = None,
+            conf_filters : ConfFilters = None,
+    ):
+        self.trust_level = trust_level
+        self.max_numb_sel = max_numb_sel
+        self.conf_filters = conf_filters
+        self.report = TrajsDistExplorationReport()
+    
+    def select (
+            self,
+            trajs : List[Path],
+            model_devis : List[Path],
+            traj_fmt : str = 'lammps/dump',
+            type_map : List[str] = None,
+    ) -> Tuple[List[ Path ], ExplorationReport]:
+        """Select configurations
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+
+        """
+        ntraj = len(trajs)
+        assert(ntraj == len(model_devis))
+        self.v_level = ( (self.trust_level.level_v_lo is not None) and \
+                         (self.trust_level.level_v_hi is not None) )
+        self.report.clear()
+        self.select_percentage = 0.5
+
+        for ii in range(ntraj):
+            self.record_one_traj(trajs[ii], model_devis[ii], traj_fmt, type_map)
+
+        id_cand = self.report.get_candidates(self.max_numb_sel)
+        id_cand_list = [[] for ii in range(ntraj)]
+        for ii in id_cand:
+            id_cand_list[ii[0]].append(ii[1])
+
+        ms = dpdata.MultiSystems(type_map=type_map)
+        for ii in range(ntraj):
+            if len(id_cand_list[ii]) > 0:
+                ss = dpdata.System(trajs[ii], fmt=traj_fmt, type_map=type_map)
+                ss = ss.sub_system(id_cand_list[ii])        
+                ms.append(ss)
+            
+        out_path = Path('confs')
+        out_path.mkdir(exist_ok=True)
+        ms.to_deepmd_npy(out_path)
+
+        return [out_path], self.report
+        
+
+    def record_one_traj(
+            self,
+            traj, 
+            model_devi,
+            traj_fmt, 
+            type_map,
+    )->None:
+        ss = ConfDistSelectorLammpsFrames._load_traj(traj, traj_fmt, type_map)
+        mdf, mdv = ConfDistSelectorLammpsFrames._load_model_devi(model_devi)
+        id_f_cand, id_f_accu, id_f_fail, id_f_cand_value = ConfDistSelectorLammpsFrames._get_indexes(
+            mdf, self.trust_level.level_f_lo, self.trust_level.level_f_hi)
+        self.report.record_traj(
+            id_f_accu, id_f_cand, id_f_fail, id_f_cand_value
+        )
+
+                
+    @staticmethod
+    def _get_indexes(
+            md, 
+            level_lo,
+            level_hi,
+    ):
+        id_cand = np.where(np.logical_and(md >=level_lo, md < level_hi))[0]
+        id_accu = np.where(md < level_lo)[0]
+        id_fail = np.where(md >=level_hi)[0]
+        return id_cand, id_accu, id_fail, md[id_cand]
 
     @staticmethod
     def _load_traj(

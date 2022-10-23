@@ -61,6 +61,7 @@ from dpgen2.exploration.task import (
 )
 from dpgen2.exploration.selector import (
     ConfSelectorLammpsFrames,
+    ConfDistSelectorLammpsFrames,
     TrustLevel,
 )
 from dpgen2.constants import (
@@ -271,7 +272,7 @@ def make_naive_exploration_scheduler(
             level_v_hi=config.get('model_devi_v_trust_hi') if old_style else config['explore']['v_trust_hi'],
         )
         # selector
-        selector = ConfSelectorLammpsFrames(
+        selector = ConfDistSelectorLammpsFrames(
             trust_level,
             fp_task_max,
         )
