@@ -59,6 +59,7 @@ class PrepRunLmp(Steps):
             "logs": OutputArtifact(),
             "trajs": OutputArtifact(),
             "model_devis": OutputArtifact(),
+            "plm_output": OutputArtifact(optional=True),
         }        
 
         super().__init__(
@@ -131,6 +132,7 @@ def _prep_run_lmp(
     prep_executor = init_executor(prep_config.pop('executor'))
     run_executor = init_executor(run_config.pop('executor'))
     group_size = run_config.pop("group_size") if "group_size" in run_config else -1
+    pool_size = run_config.pop("pool_size") if "pool_size" in run_config else 1
 
     prep_lmp = Step(
         'prep-lmp',
@@ -165,8 +167,8 @@ def _prep_run_lmp(
             group_size, group_size, process_templ.inputs.parameters["n_total"]),
         input_parameter = ["task_name"],
         input_artifact = ["task_path"],
-        output_artifact = ["log", "traj", "model_devi"],
-        pool_size=1
+        output_artifact = ["log", "traj", "model_devi", "plm_output"],
+        pool_size=pool_size
     )
     run_lmp = Step(
         'run-lmp',
@@ -195,7 +197,6 @@ def _prep_run_lmp(
     prep_run_steps.outputs.artifacts["logs"]._from = run_lmp.outputs.artifacts["log"]
     prep_run_steps.outputs.artifacts["trajs"]._from = run_lmp.outputs.artifacts["traj"]
     prep_run_steps.outputs.artifacts["model_devis"]._from = run_lmp.outputs.artifacts["model_devi"]
+    prep_run_steps.outputs.artifacts["plm_output"]._from = run_lmp.outputs.artifacts["plm_output"]
 
     return prep_run_steps
-
-

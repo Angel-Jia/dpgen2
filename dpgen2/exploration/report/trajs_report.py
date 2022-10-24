@@ -199,7 +199,7 @@ class TrajsDistExplorationReport(ExplorationReport):
 
     def get_candidates(
             self,
-            max_nframes : int = None,
+            max_nframes : Union[int, float] = None,
     )->List[Tuple[int,int]]:
         """
         Get candidates. If number of candidates is larger than `max_nframes`, 
@@ -219,8 +219,17 @@ class TrajsDistExplorationReport(ExplorationReport):
         for tidx,tt in enumerate(self.traj_cand):
             for ff in tt:
                 self.traj_cand_picked.append((tidx, *ff))
-        if max_nframes and max_nframes < len(self.traj_cand_picked):
+        if isinstance(max_nframes, int) and max_nframes > 0 and max_nframes < len(self.traj_cand_picked):
             ret = sorted(self.traj_cand_picked, key=lambda x: x[2], reverse=True)[:max_nframes]
+        elif isinstance(max_nframes, float) and max_nframes > 0 and max_nframes < 1.0:
+            numb = int(len(self.traj_cand_picked) * max_nframes + 0.5)
+            numb = max(1, numb)
+            ret = sorted(self.traj_cand_picked, key=lambda x: x[2], reverse=True)[:numb]
         else:
             ret = self.traj_cand_picked
+        max_devi_f_list = np.array([item[2] for item in ret])
+        print('max_devi_f mean:', np.mean(max_devi_f_list))
+        print('max_devi_f median:', np.median(max_devi_f_list))
+        print('max_devi_f max:', max_devi_f_list[0])
+        print('max_devi_f min:', max_devi_f_list[-1])
         return ret
