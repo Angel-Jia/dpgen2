@@ -214,7 +214,6 @@ def debug_mode(config):
     for key in steps_config.keys():
         if isinstance(steps_config[key], dict) and "executor" in steps_config[key]:
             steps_config[key].pop("executor")
-    store_global_config(config)
     return config
 
 def main():
@@ -226,6 +225,7 @@ def main():
         
     if os.getenv('DFLOW_DEBUG'):
         config = debug_mode(config)
+    store_global_config(config)
 
     if args.command == "submit":
         # with open(args.CONFIG) as fp:
