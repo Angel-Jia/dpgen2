@@ -227,6 +227,22 @@ class TrajsDistExplorationReport(ExplorationReport):
             ret = sorted(self.traj_cand_picked, key=lambda x: x[2], reverse=True)[:numb]
         else:
             ret = self.traj_cand_picked
+        
+        total_frames = sum(self.traj_nframes)
+        total_cand = sum([len(x) for x in self.traj_cand])
+        total_accu = sum([len(x) for x in self.traj_accu])
+        total_failed = sum([len(x) for x in self.traj_fail])
+        
+        print('total frames: {}, id_f_cand: {} ({:.2%}), id_f_accu: {} ({:.2%}), id_f_fail: {} ({:.2%})'.format(
+            total_frames, total_cand, total_cand / total_frames,
+            total_accu, total_accu / total_frames,
+            total_failed, total_failed / total_frames
+        ))
+        
+        hist,bins = np.histogram([v[2] for v in self.traj_cand_picked],bins=20,range=(0.,1), density=True)
+        print([round(x, 4) for x in (hist * (bins[1] - bins[0])).tolist()])
+        print(bins.tolist())
+
         max_devi_f_list = np.array([item[2] for item in ret])
         print('max_devi_f mean:', np.mean(max_devi_f_list))
         print('max_devi_f median:', np.median(max_devi_f_list))
