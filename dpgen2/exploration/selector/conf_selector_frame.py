@@ -188,6 +188,8 @@ class ConfDistSelectorLammpsFrames(ConfSelector):
         for ii in id_cand:
             id_cand_list[ii[0]].append(ii[1])
 
+        print('-->id_cand_list:', id_cand_list)
+        print('-->frame_path:', trajs)
         ms = dpdata.MultiSystems(type_map=type_map)
         for ii in range(ntraj):
             if len(id_cand_list[ii]) > 0:
